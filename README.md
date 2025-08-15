@@ -1,36 +1,80 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# EchoLite Setup Guide
 
-## Getting Started
+## Local-only Transcription (macOS, Apple Silicon)
 
-First, run the development server:
+> Private by design: audio stays on your Mac. Requires Homebrew.
+
+### Install dependencies
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+# whisper.cpp + ffmpeg
+brew install whisper-cpp ffmpeg
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+### Download a model
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+For a good speed/quality balance on M2 16 GB:
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+* **Recommended**: `ggml-medium.en.bin` (English-only, solid accuracy)
+* Faster alternative: `ggml-small.en.bin` (smaller, less accurate)
+* Heavier: `ggml-large-v3.bin` (best accuracy, slower; may be overkill for meetings)
 
-## Learn More
+```bash
+mkdir -p ~/models/whisper && cd ~/models/whisper
+curl -L -o ggml-medium.en.bin \
+  https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-medium.en.bin
+```
 
-To learn more about Next.js, take a look at the following resources:
+> Tip (Apple Silicon / Metal): if the Homebrew build needs Metal resources, set:
+>
+> ```bash
+> export GGML_METAL_PATH_RESOURCES="$(brew --prefix whisper-cpp)/share/whisper-cpp"
+> ```
+>
+> You can add that to your shell profile so it’s always set.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+### Configure EchoLite to use whisper.cpp
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+1. Open **Settings → Transcribe**.
+2. Set:
 
-## Deploy on Vercel
+   * **Engine**: `whisper_cpp`
+   * **Binary path**: `/opt/homebrew/bin/whisper-cpp` (default for Homebrew on Apple Silicon)
+   * **Model path**: `~/models/whisper/ggml-medium.en.bin` (or your chosen model)
+   * **Language**: `en`
+3. Click **Save**.
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+You can also edit `configs/echolite.models.json` manually:
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+```json
+"transcribe": {
+  "engine": "whisper_cpp",
+  "binaryPath": "/opt/homebrew/bin/whisper-cpp",
+  "modelPath": "~/models/whisper/ggml-medium.en.bin",
+  "language": "en",
+  "responseFormat": "text",
+  "systemPrompt": "Transcribe clearly with speaker cues when possible."
+}
+```
+
+### Use it
+
+* Go to the **Transcribe** tab → upload audio → **Transcribe**.
+* The app converts audio to 16kHz mono WAV (via `ffmpeg`) and runs `whisper-cpp`.
+* The transcript appears and can be downloaded as `.txt`.
+
+### Troubleshooting
+
+* **Command not found**:
+
+  * `ffmpeg`: `brew install ffmpeg`
+  * `whisper-cpp`: `brew install whisper-cpp`
+* **Metal resources error**: export `GGML_METAL_PATH_RESOURCES` as shown above.
+* **Permission denied**: make sure the binary path is executable (`chmod +x` not usually needed for Homebrew).
+* **Performance**:
+
+  * Use `ggml-small.en.bin` for faster runs.
+  * Close heavy apps; the route uses `-t N` threads (auto-chosen up to 8).
+* **Long files**: This runs fully locally. For 30–45 min meetings on M2, `medium.en` is a good balance; `small.en` is faster if you’re in a rush.
+
+---

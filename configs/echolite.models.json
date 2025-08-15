@@ -7,9 +7,10 @@
     "systemPrompt": "You are an assistant that answers questions directly from audio content."
   },
   "transcribe": {
-    "model": "whisper-large-v3",
-    "baseURL": "http://localhost:9090/v1",
-    "apiKeyEnv": "ASR_API_KEY",
+    "engine": "whisper_cpp",
+    "binaryPath": "/opt/homebrew/bin/whisper-cpp",
+    "modelPath": "~/models/whisper/ggml-medium.en.bin",
+    "language": "en",
     "responseFormat": "text",
     "systemPrompt": "Transcribe clearly with speaker cues when possible."
   },
@@ -17,7 +18,7 @@
     "model": "mock-llm",
     "baseURL": "http://localhost:4000/v1",
     "apiKeyEnv": "LLM_API_KEY",
-    "temperature": 0.2,
+    "temperature": 0.4,
     "systemPrompt": "You analyze meeting transcripts precisely and answer user instructions."
   }
 }
