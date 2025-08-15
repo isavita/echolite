@@ -51,11 +51,11 @@ export const DEFAULT_CONFIG: ModelsConfig = {
     systemPrompt: "Transcribe clearly with speaker cues when possible."
   },
   askText: {
-    model: "mock-llm",
-    baseURL: "http://localhost:4000/v1",
+    model: "qwen3:8b",
+    baseURL: "http://localhost:11434",
     apiKeyEnv: "LLM_API_KEY",
     temperature: 0.2,
-    systemPrompt: "You analyze meeting transcripts precisely and answer user instructions."
+    systemPrompt: "You analyse meeting transcripts precisely and answer user instructions."
   }
 };
 
