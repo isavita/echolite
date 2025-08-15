@@ -1,0 +1,16 @@
+{
+  "llm": {
+    "baseURL": "http://localhost:4000/v1",
+    "apiKeyEnv": "LLM_API_KEY",
+    "model": "mock-llm",
+    "temperature": 0.2,
+    "systemPrompt": "You are a precise assistant for analyzing meeting audio."
+  },
+  "asr": {
+    "baseURL": "http://localhost:9090/v1",
+    "apiKeyEnv": "ASR_API_KEY",
+    "model": "whisper-large-v3",
+    "responseFormat": "text"
+  },
+  "ui": { "maxUploadMB": 200 }
+}

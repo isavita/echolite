@@ -1,103 +1,186 @@
-import Image from "next/image";
+"use client";
 
-export default function Home() {
+import { useEffect, useRef, useState } from "react";
+
+type Loading = "idle" | "asr" | "llm";
+
+export default function Page() {
+  const [audio, setAudio] = useState<File | null>(null);
+  const [audioUrl, setAudioUrl] = useState<string | undefined>();
+  const [transcript, setTranscript] = useState("");
+  const [instruction, setInstruction] = useState("");
+  const [answer, setAnswer] = useState("");
+  const [loading, setLoading] = useState<Loading>("idle");
+  const [model, setModel] = useState("mock-llm");
+  const [temperature, setTemperature] = useState(0.2);
+  const [systemPrompt, setSystemPrompt] = useState("You are a precise assistant for analyzing meeting audio.");
+  const [showAdvanced, setShowAdvanced] = useState(false);
+
+  const abortRef = useRef<AbortController | null>(null);
+
+  useEffect(() => {
+    if (!audio) { setAudioUrl(undefined); return; }
+    const url = URL.createObjectURL(audio);
+    setAudioUrl(url);
+    return () => URL.revokeObjectURL(url);
+  }, [audio]);
+
+  const onFile = (f: File | null) => {
+    setAudio(f);
+    setTranscript("");
+    setAnswer("");
+  };
+
+  const transcribe = async () => {
+    if (!audio) return;
+    setLoading("asr");
+    setTranscript("");
+    setAnswer("");
+
+    const fd = new FormData();
+    fd.append("audio", audio);
+    const r = await fetch("/api/transcribe", { method: "POST", body: fd });
+    if (!r.ok) { setLoading("idle"); alert("Transcribe failed"); return; }
+    const data = await r.json();
+    setTranscript(data.transcript ?? "");
+    setLoading("idle");
+  };
+
+  const runLLM = async () => {
+    if (!transcript || !instruction) return;
+    setLoading("llm");
+    setAnswer("");
+
+    abortRef.current?.abort();
+    const ctrl = new AbortController();
+    abortRef.current = ctrl;
+
+    const r = await fetch("/api/complete", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ transcript, instruction, model, temperature, systemPrompt }),
+      signal: ctrl.signal
+    });
+    if (!r.ok || !r.body) { setLoading("idle"); alert("LLM call failed"); return; }
+
+    const reader = r.body.getReader();
+    const decoder = new TextDecoder();
+    while (true) {
+      const { value, done } = await reader.read();
+      if (done) break;
+      setAnswer(prev => prev + decoder.decode(value));
+    }
+    setLoading("idle");
+  };
+
+  const downloadTxt = (filename: string, text: string) => {
+    const blob = new Blob([text], { type: "text/plain;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url; a.download = filename; a.click();
+    URL.revokeObjectURL(url);
+  };
+
   return (
-    <div className="font-sans grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="font-mono list-inside list-decimal text-sm/6 text-center sm:text-left">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] font-mono font-semibold px-1 py-0.5 rounded">
-              app/page.tsx
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
+    <main className="mx-auto max-w-3xl px-4 py-8">
+      <header className="mb-6 flex items-center justify-between">
+        <h1 className="text-xl font-semibold tracking-tight">EchoLite</h1>
+        <button
+          onClick={() => setShowAdvanced(s => !s)}
+          className="rounded border px-3 py-1.5 text-sm hover:bg-neutral-50 dark:hover:bg-neutral-900"
+        >
+          {showAdvanced ? "Hide settings" : "Show settings"}
+        </button>
+      </header>
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
+      {showAdvanced && (
+        <section className="mb-6 grid grid-cols-1 gap-4 rounded-lg border p-4">
+          <div>
+            <label className="mb-1 block text-sm text-neutral-600">Model</label>
+            <input value={model} onChange={e => setModel(e.target.value)} className="w-full rounded border px-3 py-2" />
+          </div>
+          <div>
+            <label className="mb-1 block text-sm text-neutral-600">Temperature</label>
+            <input type="number" step="0.1" min={0} max={2}
+                   value={temperature} onChange={e => setTemperature(Number(e.target.value))}
+                   className="w-full rounded border px-3 py-2" />
+          </div>
+          <div>
+            <label className="mb-1 block text-sm text-neutral-600">System prompt</label>
+            <textarea value={systemPrompt} onChange={e => setSystemPrompt(e.target.value)}
+                      className="h-24 w-full rounded border px-3 py-2" />
+          </div>
+        </section>
+      )}
+
+      <section className="mb-6 space-y-3">
+        <label className="block text-sm text-neutral-600">Audio file</label>
+        <input type="file" accept="audio/*"
+               onChange={(e) => onFile(e.target.files?.[0] ?? null)}
+               className="block w-full cursor-pointer rounded border p-2" />
+        {audio && (
+          <div className="flex items-center justify-between text-sm text-neutral-600">
+            <span className="truncate">Selected: {audio.name}</span>
+            <button onClick={() => onFile(null)}
+                    className="rounded border px-2 py-1 hover:bg-neutral-50 dark:hover:bg-neutral-900">
+              Clear
+            </button>
+          </div>
+        )}
+        <div className="flex gap-2">
+          <button onClick={transcribe} disabled={!audio || loading !== "idle"}
+                  className="rounded border px-3 py-2 hover:bg-neutral-50 dark:hover:bg-neutral-900 disabled:opacity-50">
+            {loading === "asr" ? "Transcribing…" : "Transcribe"}
+          </button>
+          <audio controls className="ml-auto max-w-full" src={audioUrl} />
         </div>
-      </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
+      </section>
+
+      <section className="mb-6 space-y-2">
+        <label className="block text-sm text-neutral-600">Instruction</label>
+        <textarea value={instruction} onChange={e => setInstruction(e.target.value)}
+                  placeholder={`e.g., "Summarize in 4 points." or "Is sprint planning time mentioned?"`}
+                  className="h-28 w-full rounded border px-3 py-2" />
+        <div className="flex items-center gap-2">
+          <button onClick={runLLM} disabled={!transcript || !instruction || loading !== "idle"}
+                  className="rounded border px-3 py-2 hover:bg-neutral-50 dark:hover:bg-neutral-900 disabled:opacity-50">
+            {loading === "llm" ? "Thinking…" : "Run"}
+          </button>
+          {loading === "llm" && (
+            <button onClick={() => abortRef.current?.abort()}
+                    className="rounded border px-3 py-2 hover:bg-neutral-50 dark:hover:bg-neutral-900">
+              Abort
+            </button>
+          )}
+        </div>
+      </section>
+
+      <section className="mb-6 space-y-2">
+        <div className="flex items-center justify-between">
+          <label className="block text-sm text-neutral-600">Transcript</label>
+          <button onClick={() => downloadTxt("transcript.txt", transcript)} disabled={!transcript}
+                  className="rounded border px-3 py-1.5 text-sm hover:bg-neutral-50 dark:hover:bg-neutral-900 disabled:opacity-50">
+            Download
+          </button>
+        </div>
+        <textarea value={transcript} onChange={e => setTranscript(e.target.value)}
+                  className="h-56 w-full rounded border px-3 py-2" />
+      </section>
+
+      <section className="mb-6 space-y-2">
+        <div className="flex items-center justify-between">
+          <label className="block text-sm text-neutral-600">Answer</label>
+          <button onClick={() => downloadTxt("answer.txt", answer)} disabled={!answer}
+                  className="rounded border px-3 py-1.5 text-sm hover:bg-neutral-50 dark:hover:bg-neutral-900 disabled:opacity-50">
+            Download
+          </button>
+        </div>
+        <pre className="min-h-40 whitespace-pre-wrap rounded border px-3 py-2 text-sm">{answer}</pre>
+      </section>
+
+      <footer className="mt-10 text-center text-xs text-neutral-500">
+        Mock backend active (no external APIs). Swap to real LiteLLM/OpenAI later.
       </footer>
-    </div>
+    </main>
   );
 }
