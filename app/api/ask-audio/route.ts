@@ -1,17 +1,9 @@
 import { mockCompletion } from "@/lib/mock-llm";
 import { SAMPLE_TRANSCRIPT } from "@/lib/sample";
+import { loadModelConfig } from "@/lib/model-config";
 
 export const runtime = "nodejs";
 
-/**
- * POST multipart/form-data:
- *  - audio: File
- *  - instruction: string
- *
- * Returns: streamed text/plain (mock model output).
- * For the mock we "pretend" to run an audio-native model by internally
- * using SAMPLE_TRANSCRIPT, but we never expose it to the client.
- */
 export async function POST(req: Request) {
   const form = await req.formData();
   const file = form.get("audio") as File | null;
@@ -28,11 +20,13 @@ export async function POST(req: Request) {
     });
   }
 
-  // Simulate processing work
-  await new Promise(r => setTimeout(r, 250));
+  const cfg = await loadModelConfig();
+  const composedInstruction =
+    (cfg.askAudio.systemPrompt ? cfg.askAudio.systemPrompt + "\n\n" : "") + instruction;
 
-  // Generate mock output using an internal sample transcript (not returned to client).
-  const fullText = mockCompletion(instruction, SAMPLE_TRANSCRIPT);
+  await new Promise(r => setTimeout(r, 250)); // simulate work
+
+  const fullText = mockCompletion(composedInstruction, SAMPLE_TRANSCRIPT);
   const chunks = chunkText(fullText, 28);
 
   const stream = new ReadableStream({
@@ -52,7 +46,6 @@ export async function POST(req: Request) {
   });
 }
 
-// Optional: quick existence check
 export async function GET() {
   return Response.json({ ok: true, hint: "Use POST with multipart/form-data (audio + instruction)" });
 }

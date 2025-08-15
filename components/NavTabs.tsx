@@ -16,6 +16,7 @@ export default function NavTabs() {
       <Link href="/ask-audio" className={tab(p === "/ask-audio")}>Ask (audio)</Link>
       <Link href="/transcribe" className={tab(p === "/transcribe")}>Transcribe</Link>
       <Link href="/ask" className={tab(p === "/ask")}>Ask</Link>
+      <Link href="/settings" className={tab(p === "/settings")}>Settings</Link>
     </nav>
   );
 }

@@ -1,15 +1,22 @@
 import { mockCompletion } from "@/lib/mock-llm";
+import { loadModelConfig } from "@/lib/model-config";
+
 export const runtime = "nodejs";
 
 export async function POST(req: Request) {
   const { transcript, instruction } = await req.json();
+
   if (!transcript || !instruction) {
     return new Response(JSON.stringify({ error: "Missing transcript or instruction" }), {
       status: 400, headers: { "Content-Type": "application/json" }
     });
   }
 
-  const fullText = mockCompletion(instruction, transcript);
+  const cfg = await loadModelConfig();
+  const composedInstruction =
+    (cfg.askText.systemPrompt ? cfg.askText.systemPrompt + "\n\n" : "") + instruction;
+
+  const fullText = mockCompletion(composedInstruction, transcript);
   const chunks = chunkText(fullText, 28);
 
   const stream = new ReadableStream({
