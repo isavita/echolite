@@ -23,6 +23,57 @@ The development server starts on <http://localhost:3000>.
 
 ---
 
+## Local multimodal LLM for “Ask (audio)” with Qwen2.5-Omni 3B (llama.cpp)
+
+Run a local audio+text model via `llama.cpp` to keep recordings on your Mac.
+
+### 1. Install Dependencies
+
+```bash
+brew install llama.cpp
+```
+
+### 2. Download Model & Projector
+
+```bash
+# Create a directory for the model files
+mkdir -p ~/models/qwen2_5omni && cd ~/models/qwen2_5omni
+
+# Download the main model and the multimodal projector
+curl -L -o Qwen2.5-Omni-3B-Q8_0.gguf "https://huggingface.co/ggml-org/Qwen2.5-Omni-3B-GGUF/resolve/main/Qwen2.5-Omni-3B-Q8_0.gguf"
+curl -L -o mmproj-Qwen2.5-Omni-3B-Q8_0.gguf "https://huggingface.co/ggml-org/Qwen2.5-Omni-3B-GGUF/resolve/main/mmproj-Qwen2.5-Omni-3B-Q8_0.gguf"
+```
+
+### 3. Run the Server (in the background)
+
+This command starts the `llama.cpp` server. Keep this terminal window open or run it in a background process.
+
+```bash
+# The -ngl 20 flag limits GPU usage to ~8GB. Adjust if needed.
+llama-server \
+  -m ~/models/qwen2_5omni/Qwen2.5-Omni-3B-Q8_0.gguf \
+  --mmproj ~/models/qwen2_5omni/mmproj-Qwen2.5-Omni-3B-Q8_0.gguf \
+  --alias qwen2.5-omni-3b \
+  --host 127.0.0.1 --port 8080 \
+  -ngl 20
+```
+
+### 4. Configure EchoLite
+
+In **Settings → “Ask (audio)”**:
+
+*   **Model**: `qwen2.5-omni-3b`
+*   **Base URL**: `http://localhost:8080`
+*   **API Key Env**: (leave empty)
+
+### Troubleshooting
+
+*   **Port `8080` busy?** Use `--port 8081` in the `llama-server` command and update the Base URL.
+*   **`ffmpeg` not found?** Run `brew install ffmpeg`. The app uses it for audio conversion.
+*   **Server error `audio input is not supported`?** Ensure your `llama.cpp` build supports audio and the `--mmproj` file is correct.
+
+---
+
 ## Local-only Transcription (macOS, Apple Silicon)
 
 > Private by design: audio stays on your Mac. Requires Homebrew.
@@ -151,55 +202,7 @@ ollama run qwen3:8b -p "Say hi in one short sentence."
 
 ---
 
-## Local multimodal LLM for “Ask (audio)” with Qwen2.5-Omni 3B (llama.cpp)
+## License
 
-Run an open‑source audio+text model through `llama.cpp` so your recordings stay on your Mac.
-
-```bash
-# 1) Install llama.cpp (Homebrew)
-brew install llama.cpp
-
-# 2) Download the Qwen2.5-Omni model and its multimodal projector
-mkdir -p ~/models/qwen2_5omni && cd ~/models/qwen2_5omni
-curl -L \
-  -o Qwen2.5-Omni-3B-Q8_0.gguf \
-  https://huggingface.co/ggml-org/Qwen2.5-Omni-3B-GGUF/resolve/main/Qwen2.5-Omni-3B-Q8_0.gguf
-curl -L \
-  -o mmproj-Qwen2.5-Omni-3B-Q8_0.gguf \
-  https://huggingface.co/ggml-org/Qwen2.5-Omni-3B-GGUF/resolve/main/mmproj-Qwen2.5-Omni-3B-Q8_0.gguf
-
-# 3) Run the server with the model and projector
-#    (-ngl 20 limits GPU usage to ~8GB to leave room for other models)
-llama-server \
-  -m ~/models/qwen2_5omni/Qwen2.5-Omni-3B-Q8_0.gguf \
-  --mmproj ~/models/qwen2_5omni/mmproj-Qwen2.5-Omni-3B-Q8_0.gguf \
-  --alias qwen2.5-omni-3b --host 127.0.0.1 --port 8080 \
-  -ngl 20
-```
-
-**Configure EchoLite → Settings → “Ask (audio)”**
-
-* **Model:** `qwen2.5-omni-3b`
-* **Base URL:** `http://localhost:8080`
-* **API Key Env:** (leave empty)
-* **Temperature:** 0.2 (or your preference)
-* **System instruction:** e.g. “You are an assistant that answers questions directly from audio content.”
-
-> The route converts the uploaded audio to a 16 kHz mono WAV and sends it along with your question to the running `llama.cpp` server, which performs transcription and reasoning.
-
-**Use it**
-
-* Go to the **Ask (audio)** tab → upload audio → type an instruction → **Ask**.
-* The server replies, and the response is streamed back to the UI.
-
-**Troubleshooting (Ask audio)**
-
-* Ensure `ffmpeg` is installed; it's used for audio conversion.
-* If the port `8080` is busy, run the server with `--port 8081` and update the Base URL accordingly.
-* `llama.cpp` only accepts base64‑encoded **16 kHz mono 16‑bit PCM WAV** audio. The route converts uploads with `ffmpeg`, but if
-  conversion fails the server will reject the request.
-* If the server responds `audio input is not supported`, double‑check the audio format and that your `llama.cpp` build has audio support; some models also require a matching `--mmproj` file.
-* If downloading the model or projector fails, ensure the URLs are correct and you have enough disk space.
-
----
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
