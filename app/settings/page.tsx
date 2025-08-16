@@ -141,8 +141,8 @@ export default function SettingsPage() {
 
 function Card({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <div className="rounded-lg border p-4 space-y-3">
-      <h2 className="font-medium">{title}</h2>
+    <div className="rounded-lg border p-4 space-y-3 dark:border-neutral-800">
+      <h2 className="font-medium dark:text-violet-400">{title}</h2>
       {children}
     </div>
   );
@@ -153,8 +153,8 @@ function Grid({ children }: { children: React.ReactNode }) {
 function Text(props: { label: string; value: string; onChange: (v: string) => void; inputMode?: "text"|"decimal" }) {
   return (
     <label className="block">
-      <span className="mb-1 block text-sm text-neutral-600">{props.label}</span>
-      <input className="w-full rounded border px-3 py-2"
+      <span className="mb-1 block text-sm text-neutral-600 dark:text-neutral-400">{props.label}</span>
+      <input className="w-full rounded border px-3 py-2 dark:bg-neutral-800 dark:border-neutral-700"
              inputMode={props.inputMode ?? "text"}
              value={props.value}
              onChange={e => props.onChange(e.target.value)} />
@@ -164,16 +164,16 @@ function Text(props: { label: string; value: string; onChange: (v: string) => vo
 function Area(props: { label: string; value: string; onChange: (v: string) => void }) {
   return (
     <label className="block">
-      <span className="mb-1 block text-sm text-neutral-600">{props.label}</span>
-      <textarea className="h-28 w-full rounded border px-3 py-2" value={props.value} onChange={e => props.onChange(e.target.value)} />
+      <span className="mb-1 block text-sm text-neutral-600 dark:text-neutral-400">{props.label}</span>
+      <textarea className="h-28 w-full rounded border px-3 py-2 dark:bg-neutral-800 dark:border-neutral-700" value={props.value} onChange={e => props.onChange(e.target.value)} />
     </label>
   );
 }
 function Select(props: { label: string; value: string; onChange: (v: string) => void; options: string[] }) {
   return (
     <label className="block">
-      <span className="mb-1 block text-sm text-neutral-600">{props.label}</span>
-      <select className="w-full rounded border px-3 py-2" value={props.value} onChange={e => props.onChange(e.target.value)}>
+      <span className="mb-1 block text-sm text-neutral-600 dark:text-neutral-400">{props.label}</span>
+      <select className="w-full rounded border px-3 py-2 dark:bg-neutral-800 dark:border-neutral-700" value={props.value} onChange={e => props.onChange(e.target.value)}>
         {props.options.map(o => <option key={o} value={o}>{o}</option>)}
       </select>
     </label>
