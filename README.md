@@ -71,6 +71,11 @@ In **Settings → “Ask (audio)”**:
 *   **Port `8080` busy?** Use `--port 8081` in the `llama-server` command and update the Base URL.
 *   **`ffmpeg` not found?** Run `brew install ffmpeg`. The app uses it for audio conversion.
 *   **Server error `audio input is not supported`?** Ensure your `llama.cpp` build supports audio and the `--mmproj` file is correct.
+*   **Converting video to required audio format:** If you have a video file (e.g., `recoding.mp4`) and want to convert it to the required WAV format, use this command:
+    ```bash
+    ffmpeg -i recoding.mp4 -acodec pcm_s16le -ac 1 -ar 16000 recoding.wav
+    ```
+    This command converts the audio from the video to a 16-bit PCM, mono-channel, 16kHz WAV file, which is the format expected by the server.
 
 ---
 
