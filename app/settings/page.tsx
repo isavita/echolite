@@ -80,10 +80,10 @@ export default function SettingsPage() {
       <Card title="Transcribe (audio → text)">
         <Grid>
           <Select label="Engine" value={cfg.transcribe.engine}
-                  onChange={(v) => setCfg({ ...cfg, transcribe: { ...cfg.transcribe, engine: v as any } })}
+                  onChange={(v) => setCfg({ ...cfg, transcribe: { ...cfg.transcribe, engine: v as "whisper_cpp" | "openai_compatible" } })}
                   options={["whisper_cpp","openai_compatible"]} />
           <Select label="Response format" value={cfg.transcribe.responseFormat}
-                  onChange={(v) => setCfg({ ...cfg, transcribe: { ...cfg.transcribe, responseFormat: v as any } })}
+                  onChange={(v) => setCfg({ ...cfg, transcribe: { ...cfg.transcribe, responseFormat: v as "text" | "verbose_json" } })}
                   options={["text","verbose_json"]} />
         </Grid>
 
