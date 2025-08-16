@@ -1,13 +1,14 @@
 "use client";
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { useTranscript } from "../transcript-context";
 
 type Loading = "idle" | "asr";
 
 export default function TranscribePage() {
   const [audio, setAudio] = useState<File | null>(null);
   const [audioUrl, setAudioUrl] = useState<string | undefined>();
-  const [transcript, setTranscript] = useState("");
+  const { transcript, setTranscript } = useTranscript();
   const [loading, setLoading] = useState<Loading>("idle");
 
   useEffect(() => {
@@ -30,8 +31,6 @@ export default function TranscribePage() {
     const data = await r.json();
     const text = data.transcript ?? "";
     setTranscript(text);
-    // Save for Ask page
-    try { localStorage.setItem("echolite:lastTranscript", text); } catch {}
     setLoading("idle");
   };
 

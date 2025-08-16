@@ -1,11 +1,13 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
+import { useTranscript } from "../transcript-context";
 
 type Loading = "idle" | "llm";
 
 export default function AskPage() {
   const [instruction, setInstruction] = useState("");
   const [defaultSystem, setDefaultSystem] = useState("");
+  const { transcript: sharedTranscript, setTranscript: setSharedTranscript } = useTranscript();
   const [transcript, setTranscript] = useState("");
   const [answer, setAnswer] = useState("");
   const [loading, setLoading] = useState<Loading>("idle");
@@ -17,7 +19,13 @@ export default function AskPage() {
       const cfg = await r.json();
       setDefaultSystem(cfg?.askText?.systemPrompt || "");
     })();
-  }, []);
+
+    if (sharedTranscript) {
+      setTranscript(sharedTranscript);
+      // Clear it so it's not stale on next visit
+      setSharedTranscript("");
+    }
+  }, [sharedTranscript, setSharedTranscript]);
 
   const onTranscriptFile = async (file: File | null) => {
     if (!file) return;
@@ -44,11 +52,16 @@ export default function AskPage() {
 
     const reader = r.body.getReader();
     const decoder = new TextDecoder();
+    let result = "";
     while (true) {
       const { value, done } = await reader.read();
       if (done) break;
-      setAnswer(prev => prev + decoder.decode(value));
+      result += decoder.decode(value, { stream: true });
+      setAnswer(result);
     }
+    // Flush the final chunk
+    result += decoder.decode();
+    setAnswer(result);
     setLoading("idle");
   };
 

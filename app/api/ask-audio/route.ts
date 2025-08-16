@@ -124,13 +124,13 @@ export async function POST(req: Request) {
                 const json = JSON.parse(jsonData);
                 const chunk = json?.choices?.[0]?.delta?.content ?? "";
                 if (chunk) controller.enqueue(enc.encode(chunk));
-              } catch (e) {
+              } catch {
                 // Ignore parse errors for partial JSON
               }
             }
           }
-        } catch (e) {
-          controller.error(e);
+        } catch (err) {
+          controller.error(err);
         } finally {
           controller.close();
         }
