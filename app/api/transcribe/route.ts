@@ -3,7 +3,7 @@ import { loadModelConfig, expandHome } from "@/lib/model-config";
 import os from "node:os";
 import path from "node:path";
 import { promises as fs } from "node:fs";
-import { spawn } from "node:child_process";
+import { run } from "@/lib/process";
 
 export const runtime = "nodejs";
 
@@ -44,9 +44,13 @@ export async function POST(req: Request) {
     await run("ffmpeg", ["-y", "-i", inputPath, "-ac", "1", "-ar", "16000", wavPath]);
 
     // 3) whisper.cpp
-    const threads = Math.max(2, Math.min(8, os.cpus().length)); // reasonable default
+    const threads =
+      cfg.transcribe.threads && cfg.transcribe.threads > 0
+        ? cfg.transcribe.threads
+        : Math.max(2, Math.min(8, os.cpus().length));
     const args = [
-      "-m", modelPath,
+      "-m",
+      modelPath,
       "-f", wavPath,
       "-otxt",
       "-of", outBasePath,
@@ -82,20 +86,6 @@ export async function POST(req: Request) {
     try { await fs.unlink(`${outBasePath}.txt`); } catch {}
     try { await fs.unlink(`${outBasePath}.srt`); } catch {}
   }
-}
-
-type RunOpts = { env?: NodeJS.ProcessEnv };
-function run(cmd: string, args: string[], opts?: RunOpts): Promise<void> {
-  return new Promise((resolve, reject) => {
-    const child = spawn(cmd, args, { stdio: "pipe", env: opts?.env });
-    let stderr = "";
-    child.stderr.on("data", (d) => { stderr += d.toString(); });
-    child.on("error", (e) => reject(e));
-    child.on("close", (code) => {
-      if (code === 0) resolve();
-      else reject(new Error(`${cmd} exited with code ${code}\n${stderr}`));
-    });
-  });
 }
 
 export async function GET() {

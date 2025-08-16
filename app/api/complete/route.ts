@@ -1,4 +1,5 @@
 import { loadModelConfig } from "@/lib/model-config";
+import { safeText } from "@/lib/streaming";
 
 export const runtime = "nodejs";
 
@@ -115,8 +116,4 @@ export async function POST(req: Request) {
       "Cache-Control": "no-store"
     }
   });
-}
-
-async function safeText(r: Response) {
-  try { return await r.text(); } catch { return ""; }
 }

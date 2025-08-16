@@ -11,6 +11,7 @@
     "binaryPath": "/opt/homebrew/bin/whisper-cpp",
     "modelPath": "~/models/whisper/ggml-medium.en.bin",
     "language": "en",
+    "threads": 4,
     "responseFormat": "text",
     "systemPrompt": "Transcribe clearly with speaker cues when possible."
   },

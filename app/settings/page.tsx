@@ -8,10 +8,11 @@ type Cfg = {
     binaryPath?: string;
     modelPath?: string;
     language?: string;
+    threads?: number;
     model?: string;
     baseURL?: string;
     apiKeyEnv?: string;
-    responseFormat: "text"|"verbose_json";
+    responseFormat: "text" | "verbose_json";
     systemPrompt?: string;
   };
   askText: { model: string; baseURL: string; apiKeyEnv: string; temperature: number; systemPrompt: string };
@@ -25,6 +26,7 @@ export default function SettingsPage() {
   // Local string states to avoid number-input typing issues
   const [tempAskAudio, setTempAskAudio] = useState("0.2");
   const [tempAskText, setTempAskText] = useState("0.2");
+  const [threads, setThreads] = useState("4");
 
   useEffect(() => {
     (async () => {
@@ -33,6 +35,7 @@ export default function SettingsPage() {
       setCfg(data);
       setTempAskAudio(String(data?.askAudio?.temperature ?? "0.2"));
       setTempAskText(String(data?.askText?.temperature ?? "0.2"));
+      setThreads(String(data?.transcribe?.threads ?? "4"));
     })();
   }, []);
 
@@ -46,8 +49,13 @@ export default function SettingsPage() {
       const n = parseFloat(s);
       return Number.isFinite(n) ? Math.max(0, Math.min(2, n)) : fallback;
     };
+    const toInt = (s: string, fallback: number) => {
+      const n = parseInt(s, 10);
+      return Number.isFinite(n) ? n : fallback;
+    };
     next.askAudio.temperature = toNum(tempAskAudio, next.askAudio.temperature);
-    next.askText.temperature  = toNum(tempAskText,  next.askText.temperature);
+    next.askText.temperature = toNum(tempAskText, next.askText.temperature);
+    next.transcribe.threads = toInt(threads, next.transcribe.threads ?? 4);
 
     const r = await fetch("/api/config/models", {
       method: "POST",
@@ -93,6 +101,7 @@ export default function SettingsPage() {
               <Text label="Binary path (whisper-cpp)" value={cfg.transcribe.binaryPath ?? ""} onChange={v => setCfg({ ...cfg, transcribe: { ...cfg.transcribe, binaryPath: v } })} />
               <Text label="Model path (.bin)" value={cfg.transcribe.modelPath ?? ""} onChange={v => setCfg({ ...cfg, transcribe: { ...cfg.transcribe, modelPath: v } })} />
               <Text label="Language (e.g., en)" value={cfg.transcribe.language ?? "en"} onChange={v => setCfg({ ...cfg, transcribe: { ...cfg.transcribe, language: v } })} />
+              <Text label="Threads" value={threads} onChange={v => setThreads(v)} inputMode="decimal" />
             </Grid>
             <Area label="Instruction (optional)" value={cfg.transcribe.systemPrompt || ""} onChange={v => setCfg({ ...cfg, transcribe: { ...cfg.transcribe, systemPrompt: v } })} />
           </>

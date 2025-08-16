@@ -169,10 +169,12 @@ curl -L \
   https://huggingface.co/ggml-org/Qwen2.5-Omni-3B-GGUF/resolve/main/mmproj-Qwen2.5-Omni-3B-Q8_0.gguf
 
 # 3) Run the server with the model and projector
+#    (-ngl 20 limits GPU usage to ~8GB to leave room for other models)
 llama-server \
   -m ~/models/qwen2_5omni/Qwen2.5-Omni-3B-Q8_0.gguf \
   --mmproj ~/models/qwen2_5omni/mmproj-Qwen2.5-Omni-3B-Q8_0.gguf \
-  --alias qwen2.5-omni-3b --host 127.0.0.1 --port 8080
+  --alias qwen2.5-omni-3b --host 127.0.0.1 --port 8080 \
+  -ngl 20
 ```
 
 **Configure EchoLite → Settings → “Ask (audio)”**
