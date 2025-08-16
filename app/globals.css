@@ -6,8 +6,9 @@
 }
 
 .dark {
-  --background: #0a0a0a;
-  --foreground: #ededed;
+  --background: #111827;
+  --foreground: #d1d5db;
+  --accent: #8b5cf6;
 }
 
 @theme inline {
