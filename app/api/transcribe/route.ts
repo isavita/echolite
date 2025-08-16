@@ -69,10 +69,11 @@ export async function POST(req: Request) {
       modelPath,
       language
     });
-  } catch (err: any) {
+  } catch (err: unknown) {
+    const detail = err instanceof Error ? err.message : String(err);
     return NextResponse.json({
       error: "Transcription failed",
-      detail: String(err?.message || err)
+      detail
     }, { status: 500 });
   } finally {
     // Best-effort cleanup (comment out if you want to inspect artifacts)

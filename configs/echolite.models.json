@@ -1,8 +1,8 @@
 {
   "askAudio": {
-    "model": "mock-llm",
-    "baseURL": "http://localhost:4000/v1",
-    "apiKeyEnv": "LLM_API_KEY",
+    "model": "qwen2.5-omni-3b",
+    "baseURL": "http://localhost:8080",
+    "apiKeyEnv": "",
     "temperature": 0.2,
     "systemPrompt": "You are an assistant that answers questions directly from audio content."
   },

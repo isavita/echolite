@@ -126,3 +126,49 @@ ollama run qwen3:8b -p "Say hi in one short sentence."
 * First response may be slower due to model load; subsequent prompts are faster.
 
 ---
+
+### Local multimodal LLM for “Ask (audio)” with Qwen2.5-Omni 3B (llama.cpp)
+
+Run an open‑source audio+text model through `llama.cpp` so your recordings stay on your Mac.
+
+```bash
+# 1) Build llama.cpp server (Metal enabled on Apple Silicon)
+git clone https://github.com/ggml-org/llama.cpp.git
+cd llama.cpp
+cmake -B build -DGGML_METAL=on
+cmake --build build --target llama-server
+
+# 2) Download a Qwen2.5-Omni gguf model (~3B parameters)
+#    (open weights hosted by ggml-org, no token required)
+mkdir -p ~/models/qwen2_5omni && cd ~/models/qwen2_5omni
+curl -L \
+  -o Qwen2.5-Omni-3B-Q8_0.gguf \
+  https://huggingface.co/ggml-org/Qwen2.5-Omni-3B-GGUF/resolve/main/Qwen2.5-Omni-3B-Q8_0.gguf
+
+# 3) Run the server
+~/path/to/llama.cpp/build/bin/llama-server \
+  -m ~/models/qwen2_5omni/Qwen2.5-Omni-3B-Q8_0.gguf \
+  --alias qwen2.5-omni-3b --host 127.0.0.1 --port 8080
+```
+
+**Configure EchoLite → Settings → “Ask (audio)”**
+
+* **Model:** `qwen2.5-omni-3b`
+* **Base URL:** `http://localhost:8080`
+* **API Key Env:** (leave empty)
+* **Temperature:** 0.2 (or your preference)
+* **System instruction:** e.g. “You are an assistant that answers questions directly from audio content.”
+
+> The route converts the uploaded audio to a 16 kHz mono WAV and sends it along with your question to the running `llama.cpp` server, which performs transcription and reasoning.
+
+**Use it**
+
+* Go to the **Ask (audio)** tab → upload audio → type an instruction → **Ask**.
+* The server replies, and the response is streamed back to the UI.
+
+**Troubleshooting (Ask audio)**
+
+* Ensure `ffmpeg` is installed; it's used for audio conversion.
+* If the port `8080` is busy, run the server with `--port 8081` and update the Base URL accordingly.
+* If downloading the model fails, ensure the URL is correct and you have enough disk space.
+---
