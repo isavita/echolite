@@ -1,5 +1,28 @@
 # EchoLite Setup Guide
 
+## Project Setup
+
+### Install Node.js and npm
+
+On macOS you can install both with [Homebrew](https://brew.sh/):
+
+```bash
+brew install node
+```
+
+Alternatively, use [nvm](https://github.com/nvm-sh/nvm) to manage Node versions.
+
+### Install dependencies and run the app
+
+```bash
+npm install
+npm run dev
+```
+
+The development server starts on <http://localhost:3000>.
+
+---
+
 ## Local-only Transcription (macOS, Apple Silicon)
 
 > Private by design: audio stays on your Mac. Requires Homebrew.
@@ -75,11 +98,12 @@ You can also edit `configs/echolite.models.json` manually:
 
   * Use `ggml-small.en.bin` for faster runs.
   * Close heavy apps; the route uses `-t N` threads (auto-chosen up to 8).
-* **Long files**: This runs fully locally. For 30–45 min meetings on M2, `medium.en` is a good balance; `small.en` is faster if you’re in a rush.
+* **Long files**: This runs fully locally. For 30–45 min meetings on M2, `medium.en` is a good balance; `small.en` is faster if
+you’re in a rush.
 
 ---
 
-### Local LLM for “Ask (transcript)” with Ollama (macOS, Apple Silicon)
+## Local LLM for “Ask (transcript)” with Ollama (macOS, Apple Silicon)
 
 ```bash
 # 1) Install Ollama (Homebrew)
@@ -127,19 +151,15 @@ ollama run qwen3:8b -p "Say hi in one short sentence."
 
 ---
 
-### Local multimodal LLM for “Ask (audio)” with Qwen2.5-Omni 3B (llama.cpp)
+## Local multimodal LLM for “Ask (audio)” with Qwen2.5-Omni 3B (llama.cpp)
 
 Run an open‑source audio+text model through `llama.cpp` so your recordings stay on your Mac.
 
 ```bash
-# 1) Build llama.cpp server (Metal enabled on Apple Silicon)
-git clone https://github.com/ggml-org/llama.cpp.git
-cd llama.cpp
-cmake -B build -DGGML_METAL=on
-cmake --build build --target llama-server
+# 1) Install llama.cpp (Homebrew)
+brew install llama.cpp
 
-# 2) Download the Qwen2.5-Omni model **and** its multimodal projector
-#    (open weights hosted by ggml-org, no token required)
+# 2) Download the Qwen2.5-Omni model and its multimodal projector
 mkdir -p ~/models/qwen2_5omni && cd ~/models/qwen2_5omni
 curl -L \
   -o Qwen2.5-Omni-3B-Q8_0.gguf \
@@ -149,36 +169,10 @@ curl -L \
   https://huggingface.co/ggml-org/Qwen2.5-Omni-3B-GGUF/resolve/main/mmproj-Qwen2.5-Omni-3B-Q8_0.gguf
 
 # 3) Run the server with the model and projector
-~/path/to/llama.cpp/build/bin/llama-server \
+llama-server \
   -m ~/models/qwen2_5omni/Qwen2.5-Omni-3B-Q8_0.gguf \
   --mmproj ~/models/qwen2_5omni/mmproj-Qwen2.5-Omni-3B-Q8_0.gguf \
   --alias qwen2.5-omni-3b --host 127.0.0.1 --port 8080
-
-# 4) (Optional) Verify with a raw API call
-cat > payload.json <<'EOF'
-{
-  "model": "qwen2.5-omni-3b",
-  "messages": [
-    {
-      "role": "user",
-      "content": [
-        { "type": "text", "text": "Summarize this audio." },
-        {
-          "type": "input_audio",
-          "input_audio": {
-            "data": "$(base64 -i regret.wav)",
-            "format": "wav"
-          }
-        }
-      ]
-    }
-  ]
-}
-EOF
-
-curl -X POST http://127.0.0.1:8080/v1/chat/completions \
-  -H "Content-Type: application/json" \
-  -d @payload.json
 ```
 
 **Configure EchoLite → Settings → “Ask (audio)”**
@@ -200,7 +194,10 @@ curl -X POST http://127.0.0.1:8080/v1/chat/completions \
 
 * Ensure `ffmpeg` is installed; it's used for audio conversion.
 * If the port `8080` is busy, run the server with `--port 8081` and update the Base URL accordingly.
-* `llama.cpp` only accepts base64‑encoded **16 kHz mono 16‑bit PCM WAV** audio. The route converts uploads with `ffmpeg`, but if conversion fails the server will reject the request.
+* `llama.cpp` only accepts base64‑encoded **16 kHz mono 16‑bit PCM WAV** audio. The route converts uploads with `ffmpeg`, but if
+  conversion fails the server will reject the request.
 * If the server responds `audio input is not supported`, double‑check the audio format and that your `llama.cpp` build has audio support; some models also require a matching `--mmproj` file.
 * If downloading the model or projector fails, ensure the URLs are correct and you have enough disk space.
+
 ---
+
