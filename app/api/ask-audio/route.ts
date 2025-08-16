@@ -73,11 +73,23 @@ export async function POST(req: Request) {
     });
 
     if (!r.ok) {
-      const detail = await safeText(r);
-      return new Response(JSON.stringify({ error: "LLM call failed", detail }), {
-        status: 502,
-        headers: { "Content-Type": "application/json" }
-      });
+      let detail = await safeText(r);
+      try {
+        const err = JSON.parse(detail);
+        detail = err?.message || err?.error?.message || detail;
+        if (typeof detail === "string" && detail.includes("audio input is not supported")) {
+          detail += " (did you start llama-server with --mmproj?)";
+        }
+      } catch {
+        // ignore JSON parse errors
+      }
+      return new Response(
+        JSON.stringify({ error: "LLM call failed", detail }),
+        {
+          status: 502,
+          headers: { "Content-Type": "application/json" }
+        }
+      );
     }
 
     const json = await r.json();

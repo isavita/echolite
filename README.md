@@ -138,16 +138,20 @@ cd llama.cpp
 cmake -B build -DGGML_METAL=on
 cmake --build build --target llama-server
 
-# 2) Download a Qwen2.5-Omni gguf model (~3B parameters)
+# 2) Download the Qwen2.5-Omni model **and** its multimodal projector
 #    (open weights hosted by ggml-org, no token required)
 mkdir -p ~/models/qwen2_5omni && cd ~/models/qwen2_5omni
 curl -L \
   -o Qwen2.5-Omni-3B-Q8_0.gguf \
   https://huggingface.co/ggml-org/Qwen2.5-Omni-3B-GGUF/resolve/main/Qwen2.5-Omni-3B-Q8_0.gguf
+curl -L \
+  -o mmproj-Qwen2.5-Omni-3B.gguf \
+  https://huggingface.co/ggml-org/Qwen2.5-Omni-3B-GGUF/resolve/main/mmproj-Qwen2.5-Omni-3B.gguf
 
-# 3) Run the server
+# 3) Run the server with the model and projector
 ~/path/to/llama.cpp/build/bin/llama-server \
   -m ~/models/qwen2_5omni/Qwen2.5-Omni-3B-Q8_0.gguf \
+  --mmproj ~/models/qwen2_5omni/mmproj-Qwen2.5-Omni-3B.gguf \
   --alias qwen2.5-omni-3b --host 127.0.0.1 --port 8080
 ```
 
@@ -170,5 +174,6 @@ curl -L \
 
 * Ensure `ffmpeg` is installed; it's used for audio conversion.
 * If the port `8080` is busy, run the server with `--port 8081` and update the Base URL accordingly.
-* If downloading the model fails, ensure the URL is correct and you have enough disk space.
+* If the server responds `audio input is not supported`, make sure it was started with `--mmproj` pointing to the downloaded `mmproj-*.gguf` file.
+* If downloading the model or projector fails, ensure the URLs are correct and you have enough disk space.
 ---
