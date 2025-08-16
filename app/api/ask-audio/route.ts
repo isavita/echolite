@@ -63,7 +63,10 @@ export async function POST(req: Request) {
           {
             role: "user",
             content: [
-              { type: "input_audio", audio: { data: audioB64, format: "wav" } },
+              {
+                type: "input_audio",
+                input_audio: { data: audioB64, format: "wav" }
+              },
               { type: "input_text", text: composedInstruction }
             ]
           }
