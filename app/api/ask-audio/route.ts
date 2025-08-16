@@ -78,7 +78,8 @@ export async function POST(req: Request) {
         const err = JSON.parse(detail);
         detail = err?.message || err?.error?.message || detail;
         if (typeof detail === "string" && detail.includes("audio input is not supported")) {
-          detail += " (did you start llama-server with --mmproj?)";
+          detail +=
+            " (llama.cpp expects base64 16 kHz mono WAV audio; ensure the server was built with audio support)";
         }
       } catch {
         // ignore JSON parse errors

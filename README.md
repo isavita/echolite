@@ -174,6 +174,7 @@ curl -L \
 
 * Ensure `ffmpeg` is installed; it's used for audio conversion.
 * If the port `8080` is busy, run the server with `--port 8081` and update the Base URL accordingly.
-* If the server responds `audio input is not supported`, make sure it was started with `--mmproj` pointing to the downloaded `mmproj-*.gguf` file.
+* `llama.cpp` only accepts base64‑encoded **16 kHz mono 16‑bit PCM WAV** audio. The route converts uploads with `ffmpeg`, but if conversion fails the server will reject the request.
+* If the server responds `audio input is not supported`, double‑check the audio format and that your `llama.cpp` build has audio support; some models also require a matching `--mmproj` file.
 * If downloading the model or projector fails, ensure the URLs are correct and you have enough disk space.
 ---
