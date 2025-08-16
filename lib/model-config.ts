@@ -13,9 +13,10 @@ export type ModelsConfig = {
   transcribe: {
     engine: "whisper_cpp" | "openai_compatible";
     // Local engine fields (whisper.cpp)
-    binaryPath?: string;     // e.g., /opt/homebrew/bin/whisper-cpp
-    modelPath?: string;      // e.g., ~/models/whisper/ggml-medium.en.bin
-    language?: string;       // e.g., en
+    binaryPath?: string; // e.g., /opt/homebrew/bin/whisper-cpp
+    modelPath?: string; // e.g., ~/models/whisper/ggml-medium.en.bin
+    language?: string; // e.g., en
+    threads?: number; // e.g., 4
     // Remote (optional, future)
     model?: string;
     baseURL?: string;
@@ -47,6 +48,7 @@ export const DEFAULT_CONFIG: ModelsConfig = {
     binaryPath: "/opt/homebrew/bin/whisper-cpp",
     modelPath: path.join(os.homedir(), "models/whisper/ggml-medium.en.bin"),
     language: "en",
+    threads: 4,
     responseFormat: "text",
     systemPrompt: "Transcribe clearly with speaker cues when possible."
   },

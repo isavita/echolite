@@ -1,8 +1,9 @@
 import { loadModelConfig } from "@/lib/model-config";
+import { run } from "@/lib/process";
+import { safeText } from "@/lib/streaming";
 import os from "node:os";
 import path from "node:path";
 import { promises as fs } from "node:fs";
-import { spawn } from "node:child_process";
 
 export const runtime = "nodejs";
 
@@ -71,11 +72,12 @@ export async function POST(req: Request) {
             ]
           }
         ],
+        stream: true, // Enable streaming
         temperature
       })
     });
 
-    if (!r.ok) {
+    if (!r.ok || !r.body) {
       let detail = await safeText(r);
       try {
         const err = JSON.parse(detail);
@@ -84,33 +86,54 @@ export async function POST(req: Request) {
           detail +=
             " (llama.cpp expects base64 16 kHz mono WAV audio; ensure the server was built with audio support)";
         }
-      } catch {
-        // ignore JSON parse errors
-      }
-      return new Response(
-        JSON.stringify({ error: "LLM call failed", detail }),
-        {
-          status: 502,
-          headers: { "Content-Type": "application/json" }
-        }
-      );
+      } catch {}
+      return new Response(JSON.stringify({ error: "LLM call failed", detail }), {
+        status: 502,
+        headers: { "Content-Type": "application/json" }
+      });
     }
 
-    const json = await r.json();
-    const answer =
-      json?.choices?.[0]?.message?.content ??
-      json?.choices?.[0]?.text ??
-      "";
+    // Convert SSE stream from llama.cpp to a plain text stream
+    const reader = r.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = "";
 
-    const chunks = chunkText(String(answer), 28);
     const stream = new ReadableStream({
       async start(controller) {
         const enc = new TextEncoder();
-        for (const c of chunks) {
-          controller.enqueue(enc.encode(c));
-          await new Promise(r => setTimeout(r, 20));
+        try {
+          while (true) {
+            const { value, done } = await reader.read();
+            if (done) break;
+            buffer += decoder.decode(value, { stream: true });
+
+            const lines = buffer.split("\n");
+            buffer = lines.pop() ?? "";
+
+            for (const line of lines) {
+              const trimmed = line.trim();
+              if (!trimmed || !trimmed.startsWith("data: ")) continue;
+
+              const jsonData = trimmed.slice("data: ".length);
+              if (jsonData === "[DONE]") {
+                controller.close();
+                return;
+              }
+
+              try {
+                const json = JSON.parse(jsonData);
+                const chunk = json?.choices?.[0]?.delta?.content ?? "";
+                if (chunk) controller.enqueue(enc.encode(chunk));
+              } catch (e) {
+                // Ignore parse errors for partial JSON
+              }
+            }
+          }
+        } catch (e) {
+          controller.error(e);
+        } finally {
+          controller.close();
         }
-        controller.close();
       }
     });
 
@@ -123,10 +146,10 @@ export async function POST(req: Request) {
     });
   } catch (err: unknown) {
     const detail = err instanceof Error ? err.message : String(err);
-    return new Response(
-      JSON.stringify({ error: "Processing failed", detail }),
-      { status: 500, headers: { "Content-Type": "application/json" } }
-    );
+    return new Response(JSON.stringify({ error: "Processing failed", detail }), {
+      status: 500,
+      headers: { "Content-Type": "application/json" }
+    });
   } finally {
     try { await fs.unlink(inputPath); } catch {}
     try { await fs.unlink(wavPath); } catch {}
@@ -135,27 +158,4 @@ export async function POST(req: Request) {
 
 export async function GET() {
   return Response.json({ ok: true, hint: "Use POST with multipart/form-data (audio + instruction)" });
-}
-
-function chunkText(s: string, n: number): string[] {
-  const out: string[] = [];
-  for (let i = 0; i < s.length; i += n) out.push(s.slice(i, i + n));
-  return out;
-}
-
-function run(cmd: string, args: string[]): Promise<void> {
-  return new Promise((resolve, reject) => {
-    const child = spawn(cmd, args, { stdio: "pipe" });
-    let stderr = "";
-    child.stderr.on("data", d => { stderr += d.toString(); });
-    child.on("error", reject);
-    child.on("close", code => {
-      if (code === 0) resolve();
-      else reject(new Error(`${cmd} exited with code ${code}\n${stderr}`));
-    });
-  });
-}
-
-async function safeText(r: Response) {
-  try { return await r.text(); } catch { return ""; }
 }
