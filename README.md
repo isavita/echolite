@@ -153,6 +153,32 @@ curl -L \
   -m ~/models/qwen2_5omni/Qwen2.5-Omni-3B-Q8_0.gguf \
   --mmproj ~/models/qwen2_5omni/mmproj-Qwen2.5-Omni-3B-Q8_0.gguf \
   --alias qwen2.5-omni-3b --host 127.0.0.1 --port 8080
+
+# 4) (Optional) Verify with a raw API call
+cat > payload.json <<'EOF'
+{
+  "model": "qwen2.5-omni-3b",
+  "messages": [
+    {
+      "role": "user",
+      "content": [
+        { "type": "text", "text": "Summarize this audio." },
+        {
+          "type": "input_audio",
+          "input_audio": {
+            "data": "$(base64 -i regret.wav)",
+            "format": "wav"
+          }
+        }
+      ]
+    }
+  ]
+}
+EOF
+
+curl -X POST http://127.0.0.1:8080/v1/chat/completions \
+  -H "Content-Type: application/json" \
+  -d @payload.json
 ```
 
 **Configure EchoLite → Settings → “Ask (audio)”**

@@ -62,8 +62,13 @@ export async function POST(req: Request) {
         messages: [
           {
             role: "user",
-            content: composedInstruction,
-            audio: audioB64
+            content: [
+              { type: "text", text: composedInstruction },
+              {
+                type: "input_audio",
+                input_audio: { data: audioB64, format: "wav" }
+              }
+            ]
           }
         ],
         temperature
