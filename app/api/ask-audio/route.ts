@@ -62,13 +62,8 @@ export async function POST(req: Request) {
         messages: [
           {
             role: "user",
-            content: [
-              {
-                type: "input_audio",
-                input_audio: { data: audioB64, format: "wav" }
-              },
-              { type: "input_text", text: composedInstruction }
-            ]
+            content: composedInstruction,
+            audio: audioB64
           }
         ],
         temperature
@@ -98,7 +93,6 @@ export async function POST(req: Request) {
 
     const json = await r.json();
     const answer =
-      json?.choices?.[0]?.message?.content?.[0]?.text ??
       json?.choices?.[0]?.message?.content ??
       json?.choices?.[0]?.text ??
       "";
