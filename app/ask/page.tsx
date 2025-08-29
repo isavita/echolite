@@ -12,6 +12,12 @@ export default function AskPage() {
   const [answer, setAnswer] = useState("");
   const [loading, setLoading] = useState<Loading>("idle");
   const abortRef = useRef<AbortController | null>(null);
+  
+  // Text-to-speech states
+  const [isReadingTranscript, setIsReadingTranscript] = useState(false);
+  const [isReadingAnswer, setIsReadingAnswer] = useState(false);
+  const transcriptUtteranceRef = useRef<SpeechSynthesisUtterance | null>(null);
+  const answerUtteranceRef = useRef<SpeechSynthesisUtterance | null>(null);
 
   useEffect(() => {
     (async () => {
@@ -25,6 +31,13 @@ export default function AskPage() {
       // Clear it so it's not stale on next visit
       setSharedTranscript("");
     }
+    
+    // Cleanup speech synthesis on unmount
+    return () => {
+      if (typeof window !== 'undefined' && window.speechSynthesis) {
+        window.speechSynthesis.cancel();
+      }
+    };
   }, [sharedTranscript, setSharedTranscript]);
 
   const onTranscriptFile = async (file: File | null) => {
@@ -73,6 +86,84 @@ export default function AskPage() {
     URL.revokeObjectURL(url);
   };
 
+  // Text-to-speech functions
+  const readTranscript = () => {
+    if (!transcript || typeof window === 'undefined' || !window.speechSynthesis) return;
+    
+    if (isReadingTranscript) {
+      // Stop reading
+      window.speechSynthesis.cancel();
+      setIsReadingTranscript(false);
+      return;
+    }
+
+    // Start reading
+    const utterance = new SpeechSynthesisUtterance(transcript);
+    transcriptUtteranceRef.current = utterance;
+    
+    utterance.onend = () => {
+      setIsReadingTranscript(false);
+    };
+    
+    utterance.onerror = () => {
+      setIsReadingTranscript(false);
+    };
+    
+    setIsReadingTranscript(true);
+    window.speechSynthesis.speak(utterance);
+  };
+
+  const readAnswer = () => {
+    if (!answer || typeof window === 'undefined' || !window.speechSynthesis) return;
+    
+    if (isReadingAnswer) {
+      // Stop reading
+      window.speechSynthesis.cancel();
+      setIsReadingAnswer(false);
+      return;
+    }
+
+    // Start reading
+    const utterance = new SpeechSynthesisUtterance(answer);
+    answerUtteranceRef.current = utterance;
+    
+    utterance.onend = () => {
+      setIsReadingAnswer(false);
+    };
+    
+    utterance.onerror = () => {
+      setIsReadingAnswer(false);
+    };
+    
+    setIsReadingAnswer(true);
+    window.speechSynthesis.speak(utterance);
+  };
+
+  // Stop any speech when component unmounts or text changes
+  useEffect(() => {
+    return () => {
+      if (typeof window !== 'undefined' && window.speechSynthesis) {
+        window.speechSynthesis.cancel();
+      }
+    };
+  }, []);
+
+  // Stop reading if transcript changes while reading
+  useEffect(() => {
+    if (isReadingTranscript && typeof window !== 'undefined' && window.speechSynthesis) {
+      window.speechSynthesis.cancel();
+      setIsReadingTranscript(false);
+    }
+  }, [transcript]);
+
+  // Stop reading if answer changes while reading
+  useEffect(() => {
+    if (isReadingAnswer && typeof window !== 'undefined' && window.speechSynthesis) {
+      window.speechSynthesis.cancel();
+      setIsReadingAnswer(false);
+    }
+  }, [answer]);
+
   return (
     <section>
       <div className="mb-2 text-xs text-neutral-500">
@@ -102,8 +193,26 @@ export default function AskPage() {
               onChange={(e) => onTranscriptFile(e.target.files?.[0] ?? null)}
               className="rounded border px-3 py-1.5 text-sm"
             />
-            <button onClick={() => downloadTxt("transcript.txt", transcript)} disabled={!transcript}
-              className="rounded border px-3 py-1.5 text-sm hover:bg-neutral-50 dark:hover:bg-neutral-900 disabled:opacity-50">
+            <button 
+              onClick={() => readTranscript()} 
+              disabled={!transcript}
+              className="rounded border px-3 py-1.5 text-sm hover:bg-neutral-50 dark:hover:bg-neutral-900 disabled:opacity-50"
+            >
+              {isReadingTranscript ? (
+                <>
+                  <span className="inline-block">⏸</span> Stop
+                </>
+              ) : (
+                <>
+                  <span className="inline-block">🔊</span> Read
+                </>
+              )}
+            </button>
+            <button 
+              onClick={() => downloadTxt("transcript.txt", transcript)} 
+              disabled={!transcript}
+              className="rounded border px-3 py-1.5 text-sm hover:bg-neutral-50 dark:hover:bg-neutral-900 disabled:opacity-50"
+            >
               Download
             </button>
           </div>
@@ -133,9 +242,24 @@ export default function AskPage() {
             </button>
           )}
           <button
-            onClick={() => downloadTxt("answer.txt", answer)}
+            onClick={() => readAnswer()}
             disabled={!answer}
             className="ml-auto rounded border px-3 py-2 text-sm hover:bg-neutral-50 dark:hover:bg-neutral-900 disabled:opacity-50"
+          >
+            {isReadingAnswer ? (
+              <>
+                <span className="inline-block">⏸</span> Stop Reading
+              </>
+            ) : (
+              <>
+                <span className="inline-block">🔊</span> Read Answer
+              </>
+            )}
+          </button>
+          <button
+            onClick={() => downloadTxt("answer.txt", answer)}
+            disabled={!answer}
+            className="rounded border px-3 py-2 text-sm hover:bg-neutral-50 dark:hover:bg-neutral-900 disabled:opacity-50"
           >
             Download answer
           </button>

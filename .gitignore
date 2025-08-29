@@ -42,3 +42,6 @@ next-env.d.ts
 
 # python
 .ipynb_checkpoints/*
+
+# remove xml output from repomix
+*.xml
